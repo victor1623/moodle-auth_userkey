@@ -132,21 +132,16 @@ class auth_plugin_userkey extends auth_plugin_base {
     }
 
     /**
-     * Logs a user in using userkey and redirects after.
+     * Logs a user in using userkey and returns its token or exits with error message and 400-status code
+     * We need user login only for getting his token. Starting a real moodle session is here more like nice to have than a required feature
      *
      * @throws \moodle_exception If something went wrong.
      */
     public function user_login_userkey() {
-        global $SESSION, $CFG, $USER;
+        global $SESSION, $DB, $USER;
 
         $keyvalue = required_param('key', PARAM_ALPHANUM);
-        $wantsurl = optional_param('wantsurl', '', PARAM_URL);
-
-        if (!empty($wantsurl)) {
-            $redirecturl = $wantsurl;
-        } else {
-            $redirecturl = $CFG->wwwroot;
-        }
+        header('Content-Type: application/json', false);
 
         try {
             $key = $this->userkeymanager->validate_key($keyvalue);
@@ -155,7 +150,14 @@ class auth_plugin_userkey extends auth_plugin_base {
             if (isloggedin()) {
                 require_logout();
             }
-            throw $exception;
+            echo json_encode([
+               'error' => [
+                   'message' => $exception->getMessage(),
+                   'code' => 422
+               ]
+            ]);
+            //don't rethrow moodle_exception like in original code - we need to exit
+            exit;
         }
 
         if (isloggedin()) {
@@ -165,19 +167,24 @@ class auth_plugin_userkey extends auth_plugin_base {
             } else {
                 // Don't process further if the user is already logged in.
                 $this->userkeymanager->delete_keys($key->userid);
-                $this->redirect($redirecturl);
             }
         }
-
+        //no exception here! continue with user login and return his token
         $this->userkeymanager->delete_keys($key->userid);
 
         $user = get_complete_user_data('id', $key->userid);
         complete_user_login($user);
 
-        // Identify this session as using user key auth method.
+        // Identify this session as using user key auth method. - key is valid, user is logged in!
         $SESSION->userkey = true;
 
-        $this->redirect($redirecturl);
+        //now get users token somehow! //TODO remove hardcoded value for webservice shortname
+
+        $service = $DB->get_record('external_services', ['shortname' => "eportfolio_main", 'enabled' => 1],'*', MUST_EXIST); //if no matching service found, throw exception
+
+        $token = external_generate_token_for_current_user($service); //generate/get existing token or throw some exception
+
+        echo json_encode($token->token);
     }
 
     /**
@@ -471,6 +478,34 @@ class auth_plugin_userkey extends auth_plugin_base {
     }
 
     /**
+     * @param $data
+     * @return true
+     * @throws invalid_parameter_exception
+     * @throws moodle_exception
+     */
+    public function send_login_url($data): bool {
+        $loginurl = $this->get_login_url($data);
+        $query = parse_url($loginurl, PHP_URL_QUERY);
+
+        $params = array();
+        parse_str($query, $params);
+
+        $user = $this->get_user($data);
+
+        //TODO put it into settings
+        $clienturl = "http://localhost:3000/login?" . $query;
+        $issent = email_to_user($user, $user, "Ihr einmaliger Login Link für PJ- ePortfolio!", $clienturl,'', '', '', false);
+
+        if (empty($params["key"])) {
+            throw new invalid_parameter_exception("No key is set!");
+        }
+        if (!$issent) {
+            throw new moodle_exception("key could not be sent");
+        }
+        return true;
+    }
+
+    /**
      * Return a list of mapping fields.
      *
      * @return array
@@ -563,7 +598,7 @@ class auth_plugin_userkey extends auth_plugin_base {
      *
      * @return array
      */
-    public function get_request_login_url_user_parameters() {
+    public function get_request_login_url_user_parameters(): array {
         $parameters = array_merge($this->get_mapping_parameter(), $this->get_user_fields_parameters());
 
         return $parameters;

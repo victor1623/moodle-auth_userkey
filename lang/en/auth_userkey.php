@@ -24,8 +24,8 @@
 
 defined('MOODLE_INTERNAL') || die;
 
-$string['pluginname'] = 'User key authentication';
-$string['auth_userkeydescription'] = 'Log in to Moodle using one time user key.';
+$string['pluginname'] = 'User key authentication and token generation';
+$string['auth_userkeydescription'] = 'Get users token for webservices via known email from moodle user profile using one-time key. It is some kind of passwordless authentication';
 $string['mappingfield'] = 'Mapping field';
 $string['mappingfield_desc'] = 'This user field will be used to find relevant user in the LMS.';
 $string['iprestriction'] = 'IP restriction';

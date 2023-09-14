@@ -32,12 +32,20 @@ $functions = array(
         'description' => 'Return one time key based login URL',
         'type'        => 'write',
         'capabilities'  => 'auth/userkey:generatekey',
-    )
+    ),
+    'auth_userkey_send_login_url_email' => array(
+        'classname'   => 'auth_userkey_external',
+        'methodname'  => 'send_login_url_email',
+        'classpath'   => 'auth/userkey/externallib.php',
+        'description' => 'Sends one time key based login URL via known users email',
+        'type'        => 'write',
+        'capabilities'  => 'auth/userkey:generatekey',
+    ),
 );
 
 $services = array(
     'User key authentication web service' => array(
-        'functions' => array ('auth_userkey_request_login_url'),
+        'functions' => array ('auth_userkey_request_login_url', 'auth_userkey_send_login_url_email'),
         'restrictedusers' => 1,
         'enabled' => 1,
     )

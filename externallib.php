@@ -42,7 +42,7 @@ class auth_userkey_external extends external_api {
      *
      * @return \external_function_parameters
      */
-    public static function request_login_url_parameters() {
+    public static function request_login_url_parameters(): external_function_parameters {
         return new external_function_parameters(
             array(
                 'user' => new external_single_structure(
@@ -62,7 +62,7 @@ class auth_userkey_external extends external_api {
      * @throws \required_capability_exception
      * @throws \webservice_access_exception
      */
-    public static function request_login_url($user) {
+    public static function request_login_url(array $user): array {
 
         if (!is_enabled_auth('userkey')) {
             throw new webservice_access_exception(get_string('pluginisdisabled', 'auth_userkey'));
@@ -84,12 +84,41 @@ class auth_userkey_external extends external_api {
      *
      * @return \external_single_structure
      */
-    public static function request_login_url_returns() {
+    public static function request_login_url_returns(): external_single_structure {
         return new external_single_structure(
             array(
                 'loginurl' => new external_value(PARAM_RAW, 'Login URL for a user to log in'),
             )
         );
+    }
+
+    //new webservice function for sending email to user via moodle internal messaging api
+
+    public static function send_login_url_email_parameters(): external_function_parameters {
+        return new external_function_parameters(
+            array(
+                'user' => new external_single_structure(
+                    get_auth_plugin('userkey')->get_request_login_url_user_parameters()
+                )
+            )
+        );
+    }
+
+    public static function send_login_url_email(array $user): bool {
+        if (!is_enabled_auth('userkey')) {
+            throw new webservice_access_exception(get_string('pluginisdisabled', 'auth_userkey'));
+        }
+        $context = context_system::instance();
+        require_capability('auth/userkey:generatekey', $context);
+
+        $auth = get_auth_plugin('userkey');
+        $loginurl = $auth->get_login_url($user);
+
+        return $auth->send_login_url($user, $loginurl);
+    }
+
+    public static function send_login_url_email_returns(): external_value {
+        return new external_value(PARAM_BOOL, "Send status or exception");
     }
 
 }
