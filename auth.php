@@ -141,7 +141,8 @@ class auth_plugin_userkey extends auth_plugin_base {
         global $SESSION, $DB, $USER;
 
         $keyvalue = required_param('key', PARAM_ALPHANUM);
-        header('Content-Type: application/json', false);
+
+        header("Content-Type: application/json");
 
         try {
             $key = $this->userkeymanager->validate_key($keyvalue);
@@ -150,13 +151,8 @@ class auth_plugin_userkey extends auth_plugin_base {
             if (isloggedin()) {
                 require_logout();
             }
-            echo json_encode([
-               'error' => [
-                   'message' => $exception->getMessage(),
-                   'code' => 422
-               ]
-            ]);
-            //don't rethrow moodle_exception like in original code - we need to exit
+            //Only send 401-Unauthorized. Don't rethrow exception!
+            http_response_code(401);
             exit;
         }
 
@@ -178,8 +174,7 @@ class auth_plugin_userkey extends auth_plugin_base {
         // Identify this session as using user key auth method. - key is valid, user is logged in!
         $SESSION->userkey = true;
 
-        //now get users token somehow! //TODO remove hardcoded value for webservice shortname
-
+        //TODO remove hardcoded value for webservice shortname
         $service = $DB->get_record('external_services', ['shortname' => "eportfolio_main", 'enabled' => 1],'*', MUST_EXIST); //if no matching service found, throw exception
 
         $token = external_generate_token_for_current_user($service); //generate/get existing token or throw some exception
