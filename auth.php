@@ -175,7 +175,7 @@ class auth_plugin_userkey extends auth_plugin_base {
         $SESSION->userkey = true;
 
         //TODO remove hardcoded value for webservice shortname
-        $service = $DB->get_record('external_services', ['shortname' => "eportfolio_main", 'enabled' => 1],'*', MUST_EXIST); //if no matching service found, throw exception
+        $service = $DB->get_record('external_services', ['shortname' => "epws", 'enabled' => 1],'*', MUST_EXIST); //if no matching service found, throw exception
 
         $token = external_generate_token_for_current_user($service); //generate/get existing token or throw some exception
 
@@ -187,7 +187,7 @@ class auth_plugin_userkey extends auth_plugin_base {
      *
      * @return bool True.
      */
-    public function prevent_local_passwords() {
+    public function prevent_local_passwords(): bool {
         return true;
     }
 
@@ -196,7 +196,7 @@ class auth_plugin_userkey extends auth_plugin_base {
      *
      * @return bool False.
      */
-    public function is_internal() {
+    public function is_internal(): bool {
         return false;
     }
 
@@ -205,7 +205,7 @@ class auth_plugin_userkey extends auth_plugin_base {
      *
      * @return bool False.
      */
-    public function can_change_password() {
+    public function can_change_password(): bool {
         return false;
     }
 
@@ -488,8 +488,8 @@ class auth_plugin_userkey extends auth_plugin_base {
         $user = $this->get_user($data);
 
         //TODO put it into settings
-        $clienturl = "http://localhost:3000/login?" . $query;
-        $issent = email_to_user($user, $user, "Ihr einmaliger Login Link für PJ- ePortfolio!", $clienturl,'', '', '', false);
+        $clienturl = "https://moodle.med.ovgu.de/pj-eportfolio/login?" . $query;
+        $issent = email_to_user($user, $user, "Ihr einmaliger Login Link für PJ E-Portfolio!", $clienturl,'', '', '', false);
 
         if (empty($params["key"])) {
             throw new invalid_parameter_exception("No key is set!");
